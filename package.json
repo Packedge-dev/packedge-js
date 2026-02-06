@@ -1,0 +1,46 @@
+{
+  "name": "packedge",
+  "version": "0.0.1",
+  "description": "PackEdge SDK for license validation, auto-updates, feedback, and analytics",
+  "type": "module",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts",
+    "dev": "tsup src/index.ts --format esm,cjs --dts --watch",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/packedge-dev/packedge-js.git"
+  },
+  "keywords": [
+    "license",
+    "updates",
+    "sdk",
+    "releases",
+    "packedge",
+    "wordpress"
+  ],
+  "author": "jafrandev",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/packedge-dev/packedge-js/issues"
+  },
+  "homepage": "https://docs.packedge.dev",
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^3.0.0"
+  }
+}
