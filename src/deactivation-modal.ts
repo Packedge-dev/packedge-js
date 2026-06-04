@@ -120,9 +120,7 @@ export class DeactivationModal {
     const mounted = (w.__pdmSlugs as Set<string>) || (w.__pdmSlugs = new Set<string>());
     if (mounted.has(this.slug)) return;
 
-    const pluginLink = document.querySelector(
-      `tr[data-slug="${this.slug}"] .deactivate a`
-    );
+    const pluginLink = document.querySelector(this.rowSelector());
     if (!pluginLink) return;
 
     mounted.add(this.slug);
@@ -345,13 +343,22 @@ export class DeactivationModal {
 
   private interceptDeactivateLink(): void {
     document.addEventListener('click', (e) => {
-      const link = (e.target as HTMLElement).closest(
-        `tr[data-slug="${this.slug}"] .deactivate a`
-      );
+      const link = (e.target as HTMLElement).closest(this.rowSelector());
       if (!link) return;
       e.preventDefault();
       this.deactivateUrl = link.getAttribute('href')!;
       this.showModal();
     });
+  }
+
+  // Locate the plugin's deactivate link. WordPress sets a row's data-slug from
+  // the plugin *Name* (or the wp.org slug) — which often isn't the folder — but
+  // data-plugin is always "<folder>/<file>.php". Match either so the modal binds
+  // regardless of how the plugin is named.
+  private rowSelector(): string {
+    const s = (window as unknown as { CSS?: { escape?(v: string): string } }).CSS?.escape
+      ? CSS.escape(this.slug)
+      : this.slug;
+    return `tr[data-slug="${s}"] .deactivate a, tr[data-plugin^="${s}/"] .deactivate a`;
   }
 }
