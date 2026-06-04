@@ -1,16 +1,33 @@
 const API_BASE = 'https://api.packedge.dev/public/v1';
 
+/**
+ * Diagnostics the PHP SDK localizes onto the page on plugins.php.
+ *
+ * The shape mirrors the lifecycle snapshot the PHP `register_deactivation_hook`
+ * callback sends (`env_snapshot()`), so the backend's environment breakdowns
+ * (`payload->'env'->>'php'`, …) and `jsonb_array_elements_text(payload->'plugins')`
+ * see modal-fired uninstall events the same way they see hook-fired ones.
+ *
+ * Any extra top-level keys (admin_email, site_title, server_ip, …) are
+ * preserved and stored on the event for raw-payload inspection, even though
+ * they don't feed a dashboard chart directly.
+ */
 export interface Diagnostics {
-  wp_version?: string;
-  site_url?: string;
-  site_title?: string;
-  active_plugins?: string[];
-  theme?: string;
-  locale?: string;
-  admin_email?: string;
-  php_version?: string;
-  mysql_version?: string;
-  timezone?: string;
+  env?: {
+    php?: string;
+    wp?: string;
+    os?: string;
+    server?: string;
+    mysql?: string;
+    memory_limit?: string | number;
+    locale?: string;
+    multisite?: boolean;
+    theme?: { name?: string; version?: string };
+    [k: string]: unknown;
+  };
+  plugins?: string[];
+  /** Free-form extras kept on the event for forensic value. */
+  [k: string]: unknown;
 }
 
 export interface DeactivationModalConfig {
@@ -298,15 +315,24 @@ export class DeactivationModal {
     }, 200);
   }
 
-  private sendAndDeactivate(reason: string, details: string | null): void {
+  private sendAndDeactivate(reason: string, feedback: string | null): void {
+    // Spread diagnostics first so `reason` / `feedback` always win at the top
+    // level, and `env` / `plugins` (already nested in `diagnostics`) reach the
+    // backend in the exact shape its breakdown SQL expects:
+    //   payload->'env'->>'php', jsonb_array_elements_text(payload->'plugins').
     const properties: Record<string, unknown> = {
-      reason,
       ...this.diagnostics,
+      reason,
     };
-    if (details) properties.details = details;
+    if (feedback) properties.feedback = feedback;
     this.sendBeacon('product.uninstalled', properties);
     this.hideModal();
-    window.location.href = this.deactivateUrl;
+    // Flag the deactivation URL so the PHP `register_deactivation_hook` callback
+    // can skip its own bare `product.uninstalled` event and avoid double-counting
+    // (the modal-fired event carries reason + feedback + env, the hook-fired one
+    // has env only).
+    const sep = this.deactivateUrl.includes('?') ? '&' : '?';
+    window.location.href = `${this.deactivateUrl}${sep}packedge_dm=1`;
   }
 
   private interceptDeactivateLink(): void {
