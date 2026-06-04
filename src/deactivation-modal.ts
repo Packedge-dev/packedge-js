@@ -113,11 +113,19 @@ export class DeactivationModal {
     this.site = config.site ?? window.location.origin;
     this.diagnostics = config.diagnostics ?? {};
 
+    // Idempotent per slug: if another init path already mounted a modal for this
+    // plugin (e.g. useAnalytics() and the WP drop-in both run, or two plugins
+    // each load the SDK), bail so the user never sees duplicate modals.
+    const w = window as unknown as Record<string, unknown>;
+    const mounted = (w.__pdmSlugs as Set<string>) || (w.__pdmSlugs = new Set<string>());
+    if (mounted.has(this.slug)) return;
+
     const pluginLink = document.querySelector(
       `tr[data-slug="${this.slug}"] .deactivate a`
     );
     if (!pluginLink) return;
 
+    mounted.add(this.slug);
     this.buildModal();
     this.interceptDeactivateLink();
   }
