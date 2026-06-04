@@ -356,9 +356,8 @@ export class DeactivationModal {
   // data-plugin is always "<folder>/<file>.php". Match either so the modal binds
   // regardless of how the plugin is named.
   private rowSelector(): string {
-    const s = (window as unknown as { CSS?: { escape?(v: string): string } }).CSS?.escape
-      ? CSS.escape(this.slug)
-      : this.slug;
-    return `tr[data-slug="${s}"] .deactivate a, tr[data-plugin^="${s}/"] .deactivate a`;
+    // Plugin slugs are kebab-case (lowercase/digits/hyphens), safe in an
+    // attribute selector — no escaping needed.
+    return `tr[data-slug="${this.slug}"] .deactivate a, tr[data-plugin^="${this.slug}/"] .deactivate a`;
   }
 }
