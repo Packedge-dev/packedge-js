@@ -1,6 +1,6 @@
 {
   "name": "packedge",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "PackEdge SDK for license validation, auto-updates, feedback, and analytics",
   "type": "module",
   "main": "dist/index.cjs",
@@ -16,6 +16,7 @@
   "files": ["dist"],
   "scripts": {
     "build": "tsup src/index.ts --format esm,cjs --dts",
+    "build:wp": "tsup src/wp-global.ts --format iife --minify --out-dir dist",
     "dev": "tsup src/index.ts --format esm,cjs --dts --watch",
     "test": "vitest run",
     "test:watch": "vitest"

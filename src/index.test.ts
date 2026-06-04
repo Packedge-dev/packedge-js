@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import packedge, { init, validateLicense, activateLicense, deactivateLicense, getReleases, submitFeedback, track } from './index';
+import packedge, { PackEdge } from './index';
 
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
@@ -9,24 +9,33 @@ beforeEach(() => {
   mockFetch.mockResolvedValue({ json: () => Promise.resolve({ success: true }) });
 });
 
-describe('init', () => {
-  it('exports default and named', () => {
-    expect(packedge.init).toBe(init);
-    expect(packedge.validateLicense).toBe(validateLicense);
+describe('packedge factory', () => {
+  it('returns a PackEdge instance', () => {
+    const pe = packedge('pk_test');
+    expect(pe).toBeInstanceOf(PackEdge);
+  });
+
+  it('returns a new instance each call', () => {
+    const a = packedge('pk_test');
+    const b = packedge('pk_test');
+    expect(a).not.toBe(b);
+  });
+});
+
+describe('useAnalytics', () => {
+  it('returns this for chaining', () => {
+    const pe = packedge('pk_test', { slug: 'my-plugin' });
+    const result = pe.useAnalytics();
+    expect(result).toBe(pe);
   });
 });
 
 describe('validateLicense', () => {
-  it('throws if not initialized', async () => {
-    // Reset by re-importing would be needed for true isolation
-    // For now, just test the happy path after init
-  });
-
   it('calls correct endpoint', async () => {
-    init('pk_test');
+    const pe = packedge('pk_test');
     mockFetch.mockResolvedValueOnce({ json: () => Promise.resolve({ valid: true }) });
 
-    await validateLicense('LICENSE-123');
+    await pe.validateLicense('LICENSE-123');
 
     expect(mockFetch).toHaveBeenCalledWith(
       'https://api.packedge.dev/public/v1/licenses/validate',
@@ -42,8 +51,8 @@ describe('validateLicense', () => {
   });
 
   it('uses provided site', async () => {
-    init('pk_test');
-    await validateLicense('LICENSE-123', { site: 'https://example.com' });
+    const pe = packedge('pk_test');
+    await pe.validateLicense('LICENSE-123', { site: 'https://example.com' });
 
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
     expect(body.site).toBe('https://example.com');
@@ -52,8 +61,8 @@ describe('validateLicense', () => {
 
 describe('activateLicense', () => {
   it('calls activate endpoint', async () => {
-    init('pk_test');
-    await activateLicense('LICENSE-123');
+    const pe = packedge('pk_test');
+    await pe.activateLicense('LICENSE-123');
 
     expect(mockFetch).toHaveBeenCalledWith(
       'https://api.packedge.dev/public/v1/licenses/activate',
@@ -64,8 +73,8 @@ describe('activateLicense', () => {
 
 describe('deactivateLicense', () => {
   it('calls deactivate endpoint', async () => {
-    init('pk_test');
-    await deactivateLicense('LICENSE-123');
+    const pe = packedge('pk_test');
+    await pe.deactivateLicense('LICENSE-123');
 
     expect(mockFetch).toHaveBeenCalledWith(
       'https://api.packedge.dev/public/v1/licenses/deactivate',
@@ -78,7 +87,8 @@ describe('getReleases', () => {
   it('calls releases endpoint with GET', async () => {
     mockFetch.mockResolvedValueOnce({ json: () => Promise.resolve({ data: [] }) });
 
-    await getReleases('my-plugin');
+    const pe = packedge('pk_test');
+    await pe.getReleases('my-plugin');
 
     expect(mockFetch).toHaveBeenCalledWith(
       'https://api.packedge.dev/public/v1/products/my-plugin/releases'
@@ -88,22 +98,31 @@ describe('getReleases', () => {
 
 describe('submitFeedback', () => {
   it('sends feedback data', async () => {
-    init('pk_test');
-    await submitFeedback({ type: 'bug', message: 'Test bug' });
+    const pe = packedge('pk_test', { slug: 'my-plugin' });
+    await pe.submitFeedback({ sentiment: 'happy', message: 'Great plugin!' });
 
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
-    expect(body.type).toBe('bug');
-    expect(body.message).toBe('Test bug');
+    expect(body.sentiment).toBe('happy');
+    expect(body.message).toBe('Great plugin!');
+  });
+
+  it('sends rating feedback', async () => {
+    const pe = packedge('pk_test', { slug: 'my-plugin' });
+    await pe.submitFeedback({ rating: 2, context: { type: 'feature', value: 'export' } });
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.rating).toBe(2);
+    expect(body.context.type).toBe('feature');
   });
 });
 
 describe('track', () => {
   it('sends track event (fire and forget)', () => {
-    init('pk_test');
-    track('feature_used', { feature: 'export' });
+    const pe = packedge('pk_test', { slug: 'my-plugin' });
+    pe.track('feature_used', { feature: 'export' });
 
     expect(mockFetch).toHaveBeenCalledWith(
-      'https://api.packedge.dev/public/v1/analytics/track',
+      'https://api.packedge.dev/public/v1/event',
       expect.any(Object)
     );
   });
