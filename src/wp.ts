@@ -56,47 +56,60 @@ export class PackEdgeWP extends PackEdge {
 
     const name = pluginName || this.wpConfig.slug;
 
+    const dataList = 'Site URL, site title, admin email, WordPress/PHP/MySQL versions, locale, language, timezone, multisite status, memory limit, debug mode, active theme, active plugins, and server software.';
+
+    // Compact single-row card: accent bar · icon · one-line ask · small actions.
+    // Wraps to a second row only when "What's shared?" is expanded.
     const notice = document.createElement('div');
-    notice.className = 'notice notice-info packedge-consent-notice';
-    notice.style.cssText = 'display:flex;align-items:center;gap:12px;padding:8px 12px';
+    notice.className = 'packedge-consent-notice';
+    notice.style.cssText =
+      'display:flex;align-items:center;flex-wrap:wrap;gap:8px 10px;' +
+      'margin:10px 20px 0 0;padding:7px 12px;background:#fff;' +
+      'border:1px solid #dcdcde;border-left:3px solid #2271b1;border-radius:6px;' +
+      'box-shadow:0 1px 1px rgba(0,0,0,.04);font-size:13px;line-height:1.45;color:#1d2327';
 
     const icon = document.createElement('span');
     icon.className = 'dashicons dashicons-chart-bar';
-    icon.style.cssText = 'font-size:20px;width:20px;height:20px;color:#2271b1;flex-shrink:0';
-    notice.appendChild(icon);
+    icon.style.cssText = 'font-size:16px;width:16px;height:16px;color:#2271b1;flex-shrink:0';
 
-    const msg = document.createElement('div');
-    msg.style.cssText = 'margin:0;flex:1';
-
-    const dataList = 'Site URL, site title, admin email, WordPress/PHP/MySQL versions, locale, language, timezone, multisite status, memory limit, debug mode, active theme, active plugins, and server software.';
-
+    const msg = document.createElement('span');
+    msg.style.cssText = 'flex:1;min-width:200px';
     msg.innerHTML =
-      `<p style="margin:0">Help us make <strong>${name}</strong> better! Opt in to share non-sensitive <a href="#" class="packedge-data-toggle">diagnostic data</a> — it takes one click and keeps your site info private. <a href="https://packedge.dev/privacy/" target="_blank" rel="noopener noreferrer">Privacy Policy</a></p>` +
-      `<p class="packedge-data-list" style="margin:4px 0 0;font-size:12px;color:#646970;display:none">${dataList}</p>`;
+      `Help improve <strong>${name}</strong> by sharing anonymous diagnostics. ` +
+      `<a href="#" class="packedge-data-toggle" style="text-decoration:none">What’s shared?</a>`;
 
-    msg.querySelector('.packedge-data-toggle')!.addEventListener('click', (e) => {
-      e.preventDefault();
-      const list = msg.querySelector('.packedge-data-list') as HTMLElement;
-      list.style.display = list.style.display === 'none' ? '' : 'none';
-    });
-
-    const actions = document.createElement('div');
-    actions.style.cssText = 'display:flex;gap:8px;flex-shrink:0;margin-left:16px';
+    const actions = document.createElement('span');
+    actions.style.cssText = 'display:flex;gap:6px;flex-shrink:0';
 
     const allowBtn = document.createElement('button');
-    allowBtn.className = 'button button-primary';
-    allowBtn.textContent = 'Allow';
     allowBtn.type = 'button';
+    allowBtn.className = 'button button-primary button-small';
+    allowBtn.textContent = 'Allow';
 
     const denyBtn = document.createElement('button');
-    denyBtn.className = 'button';
-    denyBtn.textContent = 'No thanks';
     denyBtn.type = 'button';
+    denyBtn.className = 'button button-small';
+    denyBtn.textContent = 'Not now';
 
     actions.appendChild(allowBtn);
     actions.appendChild(denyBtn);
+
+    // Disclosure row — hidden until toggled; full-width so the bar stays one line.
+    const list = document.createElement('span');
+    list.className = 'packedge-data-list';
+    list.style.cssText = 'display:none;flex-basis:100%;margin:0 0 1px 26px;font-size:12px;color:#646970';
+    list.innerHTML =
+      `${dataList} <a href="https://packedge.dev/privacy/" target="_blank" rel="noopener noreferrer">Privacy Policy</a>`;
+
+    msg.querySelector('.packedge-data-toggle')!.addEventListener('click', (e) => {
+      e.preventDefault();
+      list.style.display = list.style.display === 'none' ? 'block' : 'none';
+    });
+
+    notice.appendChild(icon);
     notice.appendChild(msg);
     notice.appendChild(actions);
+    notice.appendChild(list);
     wrap.parentNode!.insertBefore(notice, wrap);
 
     const saveConsent = (consent: boolean) => {
