@@ -39,16 +39,19 @@ export interface DeactivationModalConfig {
 
 interface Reason {
   emoji: string;
+  // Stable, slug `reason` value sent to PackEdge (don't rename \u2014 it's the
+  // aggregation key). `label` is display-only and can be reworded freely.
+  slug: string;
   label: string;
 }
 
 const REASONS: Reason[] = [
-  { emoji: '\uD83E\uDD2F', label: 'Too complex' },
-  { emoji: '\u26A0\uFE0F', label: 'Not working' },
-  { emoji: '\u2728',       label: 'Found better' },
-  { emoji: '\uD83D\uDEAB', label: 'Conflicts with' },
-  { emoji: '\uD83D\uDD27', label: 'Feature missing' },
-  { emoji: '\uD83D\uDCAC', label: 'Others' },
+  { emoji: '\uD83E\uDD2F', slug: 'too_complex',     label: 'Too complex' },
+  { emoji: '\u26A0\uFE0F', slug: 'not_working',     label: 'Not working' },
+  { emoji: '\u2728',       slug: 'found_better',    label: 'Found better' },
+  { emoji: '\uD83D\uDEAB', slug: 'conflict',        label: 'Conflicts with' },
+  { emoji: '\uD83D\uDD27', slug: 'missing_feature', label: 'Feature missing' },
+  { emoji: '\uD83D\uDCAC', slug: 'other',           label: 'Others' },
 ];
 
 const CSS = [
@@ -91,9 +94,9 @@ const CSS = [
 ].join('');
 
 const PLACEHOLDERS: Record<string, string> = {
-  'Conflicts with': 'Which plugin or theme conflicts?',
-  'Feature missing': 'What feature were you looking for?',
-  'Others': 'Please share your reason...',
+  conflict: 'Which plugin or theme conflicts?',
+  missing_feature: 'What feature were you looking for?',
+  other: 'Please share your reason...',
 };
 
 const DATA_DISCLOSURE = 'Site info, server info, email, active plugins, and theme will be shared.';
@@ -268,7 +271,7 @@ export class DeactivationModal {
       const prev = grid.querySelector('.pdm-card.selected');
       if (prev) prev.classList.remove('selected');
       c.classList.add('selected');
-      this.selectedReason = REASONS[parseInt(c.getAttribute('data-index')!, 10)].label;
+      this.selectedReason = REASONS[parseInt(c.getAttribute('data-index')!, 10)].slug;
 
       details.classList.add('open');
       submitBtn.classList.add('visible');
@@ -326,10 +329,14 @@ export class DeactivationModal {
     // level, and `env` / `plugins` (already nested in `diagnostics`) reach the
     // backend in the exact shape its breakdown SQL expects:
     //   payload->'env'->>'php', jsonb_array_elements_text(payload->'plugins').
+    // `reason` is the stable slug the console aggregates on; `reason_label` is
+    // the human text for reference (the console maps slugs to labels itself).
+    const label = REASONS.find((r) => r.slug === reason)?.label ?? '';
     const properties: Record<string, unknown> = {
       ...this.diagnostics,
       reason,
     };
+    if (label) properties.reason_label = label;
     if (feedback) properties.feedback = feedback;
     this.sendBeacon('product.uninstalled', properties);
     this.hideModal();
