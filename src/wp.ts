@@ -58,19 +58,17 @@ export class PackEdgeWP extends PackEdge {
 
     const dataList = 'Site URL, site title, admin email, WordPress/PHP/MySQL versions, locale, language, timezone, multisite status, memory limit, debug mode, active theme, active plugins, and server software.';
 
-    // Compact single-row card: accent bar · icon · one-line ask · small actions.
-    // Wraps to a second row only when "What's shared?" is expanded.
+    // Standard full-width WP admin notice so it stacks cleanly with other
+    // notices (no custom card margins/borders that overlap them) — but kept to a
+    // single compact row that only wraps when "What's shared?" is expanded.
     const notice = document.createElement('div');
-    notice.className = 'packedge-consent-notice';
+    notice.className = 'notice notice-info packedge-consent-notice';
     notice.style.cssText =
-      'display:flex;align-items:center;flex-wrap:wrap;gap:8px 10px;' +
-      'margin:10px 20px 0 0;padding:7px 12px;background:#fff;' +
-      'border:1px solid #dcdcde;border-left:3px solid #2271b1;border-radius:6px;' +
-      'box-shadow:0 1px 1px rgba(0,0,0,.04);font-size:13px;line-height:1.45;color:#1d2327';
+      'display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;padding:8px 12px';
 
     const icon = document.createElement('span');
     icon.className = 'dashicons dashicons-chart-bar';
-    icon.style.cssText = 'font-size:16px;width:16px;height:16px;color:#2271b1;flex-shrink:0';
+    icon.style.cssText = 'font-size:18px;width:18px;height:18px;color:#2271b1;flex-shrink:0';
 
     const msg = document.createElement('span');
     msg.style.cssText = 'flex:1;min-width:200px';
@@ -110,7 +108,18 @@ export class PackEdgeWP extends PackEdge {
     notice.appendChild(msg);
     notice.appendChild(actions);
     notice.appendChild(list);
-    wrap.parentNode!.insertBefore(notice, wrap);
+
+    // Place it where WordPress keeps page notices: just after the
+    // hr.wp-header-end marker (core relocates admin notices there), else after
+    // the page <h1>, else at the top of .wrap. Inside .wrap it gets the full
+    // content width and stacks with other notices instead of fighting the
+    // floated screen-meta links above .wrap.
+    const anchor = wrap.querySelector('.wp-header-end') || wrap.querySelector('h1');
+    if (anchor && anchor.parentNode) {
+      anchor.parentNode.insertBefore(notice, anchor.nextSibling);
+    } else {
+      wrap.insertBefore(notice, wrap.firstChild);
+    }
 
     const saveConsent = (consent: boolean) => {
       notice.remove();
